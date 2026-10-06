@@ -3,8 +3,7 @@ name: Build Flutter APK
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -25,14 +24,20 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: Extract Zip File
+        run: |
+          mkdir -p extracted_app
+          unzip -o "*.zip" -d extracted_app
 
       - name: Build APK
-        run: flutter build apk --release
+        run: |
+          PUB_DIR=$(find extracted_app -name "pubspec.yaml" -exec dirname {} \; | head -n 1)
+          cd "$PUB_DIR"
+          flutter pub get
+          flutter build apk --release
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: extracted_app/**/build/app/outputs/flutter-apk/app-release.apk
