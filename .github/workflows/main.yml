@@ -3,34 +3,36 @@ name: Build Flutter APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Find and Unzip APK Source
-        run: |
-          ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
-          echo "Found zip: $ZIP_FILE"
-          unzip -q "$ZIP_FILE" -d extracted_app
+      - name: Set up Java JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
 
-      - uses: subosito/flutter-action@v2
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
 
-      - name: Build APK
-        run: |
-          TARGET_DIR=$(find extracted_app -name "pubspec.yaml" -exec dirname {} \;)
-          echo "Target dir: $TARGET_DIR"
-          cd "$TARGET_DIR"
-          flutter pub get
-          flutter build apk --release
+      - name: Install dependencies
+        run: flutter pub get
 
-      - name: Upload APK
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: extracted_app/**/build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
